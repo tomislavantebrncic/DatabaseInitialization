@@ -31,12 +31,6 @@ namespace Model.MovieDetails
         public int vote_count { get; set; }
     }
 
-    public class Genre
-    {
-        public int id { get; set; }
-        public string name { get; set; }
-    }
-
     public class Company
     {
         public int id { get; set; }

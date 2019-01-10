@@ -17,44 +17,22 @@ namespace DatabaseInitialization
         private static readonly string _connectionString = "mongodb://localhost:27017";
         private static readonly string _databaseName = "dm-mowizz";
         private static readonly string _moviesCollection = "movies";
+        private static readonly string _artistsCollection = "artists";
         private static readonly string _tmdbApiKey = "4c769c0e240a8d828da99a1019da67a8";
         private static readonly string _omdbApiKey = "2fc4648d";
-
+        private static readonly string _lastFMApiKey = "72af7dc96ad4715e979e0fd048e07179";
+        
         static void Main(string[] args)
         {
-            //MongoClient client = CreateClient();
-            //IMongoDatabase db = client.GetDatabase(_databaseName);
-
-            //IMongoCollection<Movie> movieCollection = db.GetCollection<Movie>(_moviesCollection);
-            //IMongoCollection<Id> ids = db.GetCollection<Id>("ids");
-
-            //var latestFound = ids.Find(x => true).FirstOrDefault();
-            //var latestId = (latestFound == null) ? 0 : latestFound.id;
-
-            //var latestIdReal = GetLatestIdFromTmdb();
-
-            //for (int i = latestId+1; i < latestIdReal; i++)
-            //{
-            //    var movie = FetchMovieById(i);
-
-            //    if (ids.CountDocuments(x => true) == 1)
-            //    {
-            //        ids.FindOneAndDelete(x => true);
-            //    }
-            //    ids.InsertOne(new Id(i));
-
-            //    if (movie != null)
-            //    {
-            //        movie.Ratings = GetRatingsFromImdbId(movie.imdb_id);
-            //        Console.WriteLine("Inserting into db: [" + movie.id + ", " + movie.title + "]");
-            //        movieCollection.InsertOne(movie);
-            //    }
-            //}
             MongoClient client = CreateClient();
             IMongoDatabase db = client.GetDatabase(_databaseName);
 
             IMongoCollection<TMDBAPIResponse> movieCollection = db.GetCollection<TMDBAPIResponse>(_moviesCollection);
             IMongoCollection<Id> ids = db.GetCollection<Id>("ids");
+
+            Tunefind tf = new Tunefind();
+
+            FreeTrialInitializationTunefind(movieCollection);
 
             var latestFound = ids.Find(x => true).FirstOrDefault();
             var latestId = (latestFound == null) ? 0 : latestFound.id;
@@ -71,24 +49,52 @@ namespace DatabaseInitialization
                 }
                 ids.InsertOne(new Id(i));
 
-                if (movieDetails != null && !String.IsNullOrEmpty(movieDetails.release_date))
+                if (movieDetails != null && !String.IsNullOrEmpty(movieDetails.release_date) && movieDetails.original_language.Equals("en"))
                 {
                     if (movieDetails.runtime == null)
                     {
                         movieDetails.runtime = 0;
                     }
                     movieDetails.Ratings = GetRatingsFromImdbId(movieDetails.imdb_id);
-                    Console.WriteLine("Inserting into db: [" + movieDetails.id + ", " + movieDetails.title + "]");
-                    movieCollection.InsertOne(movieDetails);
+                    movieDetails.Soundtrack = GetSoundtrackFromTunefind(movieDetails.id, tf);
+                    Console.WriteLine("Inserting into db: [" + movieDetails.id + ", " + movieDetails.title + "] " + movieDetails.original_language);
+                    SafeInsert(movieDetails, movieCollection);
                 }
             }
+        }
+
+        private static List<Song> GetSoundtrackFromTunefind(int id, Tunefind tf)
+        {
+            List<Song> soundtrack = new List<Song>();
+            var response = tf.GetSoundtracks(id);
+
+            if (response != null)
+            {
+                foreach (var song in response.songs)
+                {
+                    soundtrack.Add(new Song
+                    {
+                        Id = song.id,
+                        Name = song.name,
+                        TunefindUrl = song.tunefind_url,
+                        Artist = new Artist
+                        {
+                            Id = song.artist.id,
+                            Name = song.artist.name,
+                            TunefindUrl = song.artist.tunefind_url
+                        }
+                    });
+                }
+            }
+
+            return soundtrack;
         }
 
         private static TMDBAPIResponse FetchMovieDetailsById(int id)
         {
             var apiCall = "https://api.themoviedb.org/3/movie/" + id + "?api_key=" + _tmdbApiKey + "&append_to_response=keywords,credits,similar,images";
 
-            var apiResponse = CallApi(apiCall);
+            var apiResponse = Api.CallApi(apiCall);
             if (apiResponse != null)
             {
                 return JsonConvert.DeserializeObject<TMDBAPIResponse>(apiResponse);
@@ -97,24 +103,11 @@ namespace DatabaseInitialization
             return null;
         }
 
-        //private static Movie FetchMovieById(int id)
-        //{
-        //    var apiCall = "https://api.themoviedb.org/3/movie/"+id+"?api_key=" + _tmdbApiKey + "&append_to_response=keywords,credits";
-
-        //    var apiResponse = CallApi(apiCall);
-        //    if (apiResponse != null)
-        //    {
-        //        return JsonConvert.DeserializeObject<Movie>(apiResponse);
-        //    }
-
-        //    return null;
-        //}
-
         private static int GetLatestIdFromTmdb()
         {
             var apiCall = "https://api.themoviedb.org/3/movie/latest?api_key=" + _tmdbApiKey;
 
-            var apiResponse = CallApi(apiCall);
+            var apiResponse = Api.CallApi(apiCall);
             return JsonConvert.DeserializeObject<TMDBAPIResponse>(apiResponse).id;
         }
 
@@ -122,7 +115,7 @@ namespace DatabaseInitialization
         {
             var apiCall = "http://www.omdbapi.com/?apikey=" + _omdbApiKey + "&i=" + imdbId;
 
-            var apiResponse = CallApi(apiCall);
+            var apiResponse = Api.CallApi(apiCall);
             if (apiResponse != null)
             {
                 return JsonConvert.DeserializeObject<OMDBMovieInfo>(apiResponse).Ratings;
@@ -131,26 +124,34 @@ namespace DatabaseInitialization
             return new List<Rating>();
         }
 
-        private static string CallApi(string apiCall)
-        {
-            var apiRequest = WebRequest.Create(apiCall);
-
-            try
-            {
-                using (var response = apiRequest.GetResponse() as HttpWebResponse)
-                {
-                    var reader = new StreamReader(response.GetResponseStream());
-                    return reader.ReadToEnd();
-                }
-            } catch (WebException e)
-            {
-                return null;
-            }
-        }
-
         private static MongoClient CreateClient()
         {
             return new MongoClient(_connectionString);
+        }
+
+        private static void FreeTrialInitializationTunefind(IMongoCollection<TMDBAPIResponse> movieCollection)
+        {
+            int[] ids = new int[] { 431530, 400106, 483104, 459954, 446791, 436459, 486859, 301337, 353486, 141052 };
+            for (int i = 0; i < ids.Length; i++)
+            {
+                var movieDetails = FetchMovieDetailsById(ids[i]);
+                movieDetails.Ratings = GetRatingsFromImdbId(movieDetails.imdb_id);
+                movieDetails.Soundtrack = GetSoundtrackFromTunefind(movieDetails.id, new Tunefind());
+                Console.WriteLine("Inserting into db: [" + movieDetails.id + ", " + movieDetails.title + "] " + movieDetails.original_language);
+                SafeInsert(movieDetails, movieCollection);
+            }
+        }
+
+        private static void SafeInsert(TMDBAPIResponse movieDetails, IMongoCollection<TMDBAPIResponse> movieCollection)
+        {
+            try
+            {
+                movieCollection.InsertOne(movieDetails);
+            } 
+            catch (Exception e)
+            {
+                // ignore if it is in database
+            }
         }
 
         private class OMDBMovieInfo

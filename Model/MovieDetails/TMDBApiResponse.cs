@@ -14,7 +14,7 @@ namespace Model.MovieDetails
         public string backdrop_path { get; set; }
     }
 
-    public class GenreMovie
+    public class Genre
     {
         public int id { get; set; }
         public string name { get; set; }
@@ -63,7 +63,7 @@ namespace Model.MovieDetails
         public string profile_path { get; set; }
     }
 
-    public class CrewPerson
+    public class Crew
     {
         public string credit_id { get; set; }
         public string department { get; set; }
@@ -145,6 +145,23 @@ namespace Model.MovieDetails
         public MovieImages images { get; set; }
         public List<Rating> Ratings { get; set; }
         public AppRating AppRating { get; set; }
+        public List<Song> Soundtrack { get; set; }
+
+    }
+
+    public class Song
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public string TunefindUrl { get; set; }
+        public Artist Artist { get; set; }
+    }
+
+    public class Artist
+    {
+        public string Id { get; set; }
+        public string Name { get; set; }
+        public string TunefindUrl { get; set; }
     }
 
     public class Rating

@@ -49,6 +49,7 @@
     <Compile Include="MovieDetails\SimilarMoviesResponse.cs" />
     <Compile Include="MovieDetails\TMDBApiResponse.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Tunefind\TunefindResponse.cs" />
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
