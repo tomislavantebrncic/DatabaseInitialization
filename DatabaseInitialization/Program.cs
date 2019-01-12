@@ -57,7 +57,6 @@ namespace DatabaseInitialization
                     }
                     movieDetails.Ratings = GetRatingsFromImdbId(movieDetails.imdb_id);
                     movieDetails.Soundtrack = GetSoundtrackFromTunefind(movieDetails.id, tf);
-                    Console.WriteLine("Inserting into db: [" + movieDetails.id + ", " + movieDetails.title + "] " + movieDetails.original_language);
                     SafeInsert(movieDetails, movieCollection);
                 }
             }
@@ -92,7 +91,7 @@ namespace DatabaseInitialization
 
         private static TMDBAPIResponse FetchMovieDetailsById(int id)
         {
-            var apiCall = "https://api.themoviedb.org/3/movie/" + id + "?api_key=" + _tmdbApiKey + "&append_to_response=keywords,credits,similar,images";
+            var apiCall = "https://api.themoviedb.org/3/movie/" + id + "?api_key=" + _tmdbApiKey + "&append_to_response=keywords,credits,similar,images,videos";
 
             var apiResponse = Api.CallApi(apiCall);
             if (apiResponse != null)
@@ -137,7 +136,6 @@ namespace DatabaseInitialization
                 var movieDetails = FetchMovieDetailsById(ids[i]);
                 movieDetails.Ratings = GetRatingsFromImdbId(movieDetails.imdb_id);
                 movieDetails.Soundtrack = GetSoundtrackFromTunefind(movieDetails.id, new Tunefind());
-                Console.WriteLine("Inserting into db: [" + movieDetails.id + ", " + movieDetails.title + "] " + movieDetails.original_language);
                 SafeInsert(movieDetails, movieCollection);
             }
         }
@@ -147,7 +145,8 @@ namespace DatabaseInitialization
             try
             {
                 movieCollection.InsertOne(movieDetails);
-            } 
+                Console.WriteLine("Inserted into db: [" + movieDetails.id + ", " + movieDetails.title + "] " + movieDetails.original_language);
+            }
             catch (Exception e)
             {
                 // ignore if it is in database
