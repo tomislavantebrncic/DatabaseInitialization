@@ -18,6 +18,7 @@ namespace DatabaseInitialization
         private static readonly string _databaseName = "dm-mowizz";
         private static readonly string _moviesCollection = "movies";
         private static readonly string _artistsCollection = "artists";
+        private static readonly string _genresCollection = "genres";
         private static readonly string _tmdbApiKey = "4c769c0e240a8d828da99a1019da67a8";
         private static readonly string _omdbApiKey = "2fc4648d";
         private static readonly string _lastFMApiKey = "72af7dc96ad4715e979e0fd048e07179";
@@ -31,8 +32,10 @@ namespace DatabaseInitialization
             IMongoCollection<Id> ids = db.GetCollection<Id>("ids");
 
             Tunefind tf = new Tunefind();
-
+      
             FreeTrialInitializationTunefind(movieCollection);
+
+            InitializeGenres(db.GetCollection<Genre>(_genresCollection));
 
             var latestFound = ids.Find(x => true).FirstOrDefault();
             var latestId = (latestFound == null) ? 0 : latestFound.id;
@@ -58,6 +61,20 @@ namespace DatabaseInitialization
                     movieDetails.Ratings = GetRatingsFromImdbId(movieDetails.imdb_id);
                     movieDetails.Soundtrack = GetSoundtrackFromTunefind(movieDetails.id, tf);
                     SafeInsert(movieDetails, movieCollection);
+                }
+            }
+        }
+
+        private static void InitializeGenres(IMongoCollection<Genre> mongoCollection)
+        {
+            if (mongoCollection.CountDocuments(g => true) == 0)
+            {
+                var apiResponse = Api.CallApi("https://api.themoviedb.org/3/genre/movie/list?language=en-US&api_key=" + _tmdbApiKey);
+                if (apiResponse != null)
+                {
+                    var genres = JsonConvert.DeserializeObject<GenreResponse>(apiResponse);
+
+                    mongoCollection.InsertMany(genres.genres);
                 }
             }
         }
@@ -149,7 +166,7 @@ namespace DatabaseInitialization
             }
             catch (Exception e)
             {
-                // ignore if it is in database
+                Console.WriteLine("Already in db: " + movieDetails.title);
             }
         }
 

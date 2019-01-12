@@ -45,6 +45,7 @@
     <Compile Include="MovieDetails\CreditsResponse.cs" />
     <Compile Include="MovieDetails\DetailsResponse.cs" />
     <Compile Include="MovieDetails\DetailsViewModel.cs" />
+    <Compile Include="MovieDetails\GenreResponse.cs" />
     <Compile Include="MovieDetails\MovieImages.cs" />
     <Compile Include="MovieDetails\SimilarMoviesResponse.cs" />
     <Compile Include="MovieDetails\TMDBApiResponse.cs" />
