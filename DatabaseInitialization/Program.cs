@@ -60,6 +60,7 @@ namespace DatabaseInitialization
                     }
                     movieDetails.Ratings = GetRatingsFromImdbId(movieDetails.imdb_id);
                     movieDetails.Soundtrack = GetSoundtrackFromTunefind(movieDetails.id, tf);
+                    movieDetails.AppRating = new AppRating();
                     SafeInsert(movieDetails, movieCollection);
                 }
             }
