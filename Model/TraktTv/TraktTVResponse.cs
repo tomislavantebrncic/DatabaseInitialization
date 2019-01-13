@@ -18,7 +18,7 @@ namespace Model.TraktTv
     public class TraktTVResponse
     {
         public string title { get; set; }
-        public Int32 year { get; set; }
+        public Nullable<int> year { get; set; }
         public Ids ids { get; set; }
     }
 
