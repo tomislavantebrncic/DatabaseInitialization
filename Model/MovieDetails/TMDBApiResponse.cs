@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Model.TraktTv;
 
 namespace Model.MovieDetails
 {
@@ -147,6 +148,14 @@ namespace Model.MovieDetails
         public AppRating AppRating { get; set; }
         public List<Song> Soundtrack { get; set; }
         public Videos videos { get; set; }
+        public List<TraktTVSimilar> TraktSimilars { get; set; }
+    }
+
+    public class TraktTVSimilar
+    {
+        public string Title { get; set; }
+        public string ImdbId { get; set; }
+        public int TmdbId { get; set; }
     }
 
     public class Song

@@ -32,8 +32,9 @@ namespace DatabaseInitialization
             IMongoCollection<Id> ids = db.GetCollection<Id>("ids");
 
             Tunefind tf = new Tunefind();
-      
-            FreeTrialInitializationTunefind(movieCollection);
+            TraktTV ttv = new TraktTV();
+
+            FreeTrialInitializationTunefind(movieCollection, tf, ttv);
 
             InitializeGenres(db.GetCollection<Genre>(_genresCollection));
 
@@ -58,6 +59,19 @@ namespace DatabaseInitialization
                     {
                         movieDetails.runtime = 0;
                     }
+
+
+                    List<TraktTVSimilar> traktTVSimilars = new List<TraktTVSimilar>();
+                    foreach (var ts in ttv.GetTraktTVResponse(movieDetails.imdb_id))
+                    {
+                        traktTVSimilars.Add(new TraktTVSimilar
+                        {
+                            Title = ts.title,
+                            ImdbId = ts.ids.imdb,
+                            TmdbId = ts.ids.tmdb
+                        });
+                    }
+                    movieDetails.TraktSimilars = traktTVSimilars;
                     movieDetails.Ratings = GetRatingsFromImdbId(movieDetails.imdb_id);
                     movieDetails.Soundtrack = GetSoundtrackFromTunefind(movieDetails.id, tf);
                     movieDetails.AppRating = new AppRating();
@@ -146,14 +160,26 @@ namespace DatabaseInitialization
             return new MongoClient(_connectionString);
         }
 
-        private static void FreeTrialInitializationTunefind(IMongoCollection<TMDBAPIResponse> movieCollection)
+        private static void FreeTrialInitializationTunefind(IMongoCollection<TMDBAPIResponse> movieCollection, Tunefind tf, TraktTV ttv)
         {
             int[] ids = new int[] { 431530, 400106, 483104, 459954, 446791, 436459, 486859, 301337, 353486, 141052 };
             for (int i = 0; i < ids.Length; i++)
             {
                 var movieDetails = FetchMovieDetailsById(ids[i]);
+                List<TraktTVSimilar> traktTVSimilars = new List<TraktTVSimilar>();
+                foreach (var ts in ttv.GetTraktTVResponse(movieDetails.imdb_id))
+                {
+                    traktTVSimilars.Add(new TraktTVSimilar
+                    {
+                        Title = ts.title,
+                        ImdbId = ts.ids.imdb,
+                        TmdbId = ts.ids.tmdb
+                    });
+                }
+                movieDetails.TraktSimilars = traktTVSimilars;
                 movieDetails.Ratings = GetRatingsFromImdbId(movieDetails.imdb_id);
-                movieDetails.Soundtrack = GetSoundtrackFromTunefind(movieDetails.id, new Tunefind());
+                movieDetails.Soundtrack = GetSoundtrackFromTunefind(movieDetails.id, tf);
+                movieDetails.AppRating = new AppRating();
                 SafeInsert(movieDetails, movieCollection);
             }
         }

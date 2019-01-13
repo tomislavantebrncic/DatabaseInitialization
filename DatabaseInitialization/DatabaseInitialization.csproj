@@ -67,6 +67,7 @@
     <Compile Include="LastFM.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="TraktTV.cs" />
     <Compile Include="Tunefind.cs" />
   </ItemGroup>
   <ItemGroup>
